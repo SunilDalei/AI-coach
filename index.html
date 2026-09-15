@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Interview Coach</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <aside class="sidebar">
+        <div class="logo">
+          <div class="logo-icon">🤖</div>
+          <div>
+            <h2>AI Interview</h2>
+            <h2>Coach</h2>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button class="nav-item active" data-section="home">
+            <span>⌂</span><span>Home</span>
+          </button>
+          <button class="nav-item" data-section="interview">
+            <span>▣</span><span>Interview</span>
+          </button>
+          <button class="nav-item" data-section="history">
+            <span>◷</span><span>History</span>
+          </button>
+          <button class="nav-item" data-section="dashboard">
+            <span>▥</span><span>Dashboard</span>
+          </button>
+        </nav>
+
+        <div class="daily-goal">
+          <h3>Today's Goal</h3>
+          <p><span id="completed-interviews">0</span> / 3 Interviews</p>
+          <div class="progress-bar">
+            <div class="progress-fill" id="daily-progress"></div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <section id="home-section" class="page-section active-section">
+          <div class="welcome-section">
+            <div>
+              <h1>Welcome to AI Interview Coach 👋</h1>
+              <p>
+                Practice technical interviews with an AI-powered interviewer.
+              </p>
+            </div>
+          </div>
+
+          <div class="home-grid">
+            <div class="card interview-setup">
+              <h2>Start a New Interview</h2>
+
+              <div class="form-group">
+                <label for="topic">Select Topic</label>
+                <select id="topic">
+                  <option value="DSA">Data Structures & Algorithms</option>
+                  <option value="OS">Operating Systems</option>
+                  <option value="DBMS">Database Management Systems</option>
+                  <option value="CN">Computer Networks</option>
+                  <option value="OOP">Object Oriented Programming</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="difficulty">Select Difficulty</label>
+                <select id="difficulty">
+                  <option value="Easy">Easy</option>
+                  <option value="Medium" selected>Medium</option>
+                  <option value="Hard">Hard</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="interview-mode">Interview Mode</label>
+                <select id="interview-mode">
+                  <option value="Technical Interview">
+                    Technical Interview
+                  </option>
+                  <option value="Rapid Fire">Rapid Fire</option>
+                </select>
+              </div>
+
+              <button id="start-interview-btn" class="primary-btn">
+                Start Interview
+              </button>
+            </div>
+
+            <div class="card quick-stats">
+              <h2>Quick Stats</h2>
+              <div class="stat-item">
+                <span>Interviews Completed</span
+                ><strong id="total-interviews">0</strong>
+              </div>
+              <div class="stat-item">
+                <span>Average Score</span
+                ><strong id="average-score">0/10</strong>
+              </div>
+              <div class="stat-item">
+                <span>Strongest Topic</span
+                ><strong id="strongest-topic">-</strong>
+              </div>
+              <div class="stat-item">
+                <span>Weakest Topic</span><strong id="weakest-topic">-</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="interview-section" class="page-section">
+          <div class="section-header">
+            <div>
+              <h1>Interview in Progress</h1>
+              <p id="question-counter">Question 1 of 5</p>
+            </div>
+
+            <div class="interview-timer">
+              Time: <span id="timer">00:00</span>
+            </div>
+
+            <button id="end-interview-btn" class="danger-btn">
+              End Interview
+            </button>
+          </div>
+
+          <div class="interview-details">
+            <p>Topic: <span id="selected-topic"></span></p>
+            <p>Difficulty: <span id="selected-difficulty"></span></p>
+            <p>Mode: <span id="selected-mode"></span></p>
+          </div>
+
+          <div class="card interview-card">
+            <div class="question-header">
+              <span id="question-number">Question 1</span>
+              <span id="question-topic" class="badge">DSA</span>
+            </div>
+
+            <div class="question-container">
+              <h2 id="question-text">
+                Your interview question will appear here.
+              </h2>
+            </div>
+
+            <div class="answer-container">
+              <label for="answer">Your Answer</label>
+
+              <textarea
+                id="answer"
+                rows="10"
+                placeholder="Write your answer here..."
+              ></textarea>
+
+              <div class="answer-footer">
+                <span id="character-count">0 characters</span>
+
+                <button id="submit-answer-btn" class="primary-btn">
+                  Submit Answer
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="evaluation-section" class="page-section">
+          <div class="section-header">
+            <div>
+              <h1>Evaluation Result</h1>
+              <p>AI analysis of your answer</p>
+            </div>
+          </div>
+
+          <div class="evaluation-grid">
+            <div class="card score-card">
+              <h2>Your Score</h2>
+              <div class="score-circle">
+                <span id="score-value">0</span>
+                <small>/ 10</small>
+              </div>
+              <p id="score-message">Complete an answer to see your score.</p>
+            </div>
+
+            <div class="evaluation-details">
+              <div class="card feedback-card">
+                <h3>What You Did Well</h3>
+                <p id="positive-feedback">Your strengths will appear here.</p>
+              </div>
+
+              <div class="card feedback-card">
+                <h3>What You're Missing</h3>
+                <p id="missing-feedback">Missing concepts will appear here.</p>
+              </div>
+
+              <div class="card feedback-card">
+                <h3>Suggested Improvement</h3>
+                <p id="improvement-feedback">Suggestions will appear here.</p>
+              </div>
+
+              <div class="card feedback-card follow-up-card">
+                <h3>Follow-up Question</h3>
+                <p id="follow-up-question">
+                  A follow-up question will appear here.
+                </p>
+                <button id="answer-follow-up-btn" class="primary-btn">
+                  Answer Follow-up
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="history-section" class="page-section">
+          <div class="section-header">
+            <div>
+              <h1>Interview History</h1>
+              <p>Review your previous interviews.</p>
+            </div>
+          </div>
+
+          <div class="card history-card">
+            <div class="history-table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Topic</th>
+                    <th>Difficulty</th>
+                    <th>Score</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="history-table-body">
+                  <tr>
+                    <td colspan="4">No interviews completed yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="dashboard-section" class="page-section">
+          <div class="section-header">
+            <div>
+              <h1>Dashboard</h1>
+              <p>Track your interview performance.</p>
+            </div>
+          </div>
+
+          <div class="dashboard-stats">
+            <div class="card dashboard-stat">
+              <span>Total Interviews</span
+              ><strong id="dashboard-interviews">0</strong>
+            </div>
+            <div class="card dashboard-stat">
+              <span>Average Score</span
+              ><strong id="dashboard-average">0/10</strong>
+            </div>
+            <div class="card dashboard-stat">
+              <span>Best Topic</span
+              ><strong id="dashboard-best-topic">-</strong>
+            </div>
+            <div class="card dashboard-stat">
+              <span>Weakest Topic</span
+              ><strong id="dashboard-weak-topic">-</strong>
+            </div>
+          </div>
+
+          <div class="card topic-performance">
+            <h2>Topic Performance</h2>
+            <div id="topic-performance-list">
+              <p>Complete interviews to see your topic performance.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
+```
