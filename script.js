@@ -1,4 +1,4 @@
-const GEMINI_API_KEY =  CONFIG.GEMINI_API_KEY;
+const GEMINI_API_KEY = CONFIG.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-3.6-flash";
 
 // GET HTML ELEMENTS
@@ -31,14 +31,21 @@ let selectedTopic = "";
 let selectedDifficulty = "";
 let selectedMode = "";
 let isFollowUpQuestion = false;
-let interviewhostory = [];
-const interviewQuestions = {
-  DSA: "What is the difference between an array and a linked list?",
-  DBMS: "What is database normalization and why is it important?",
-  OS: "What is the difference between a process and a thread?",
-  CN: "What is the difference between TCP and UDP?",
-  OOP: "What are the four main principles of object-oriented programming?",
-};
+let interviewHistory = [];
+
+const savedHistory = localStorage.getItem("interviewHistory");
+
+if (savedHistory) {
+  interviewHistory = JSON.parse(savedHistory);
+}
+
+// const interviewQuestions = {
+//   DSA: "What is the difference between an array and a linked list?",
+//   DBMS: "What is database normalization and why is it important?",
+//   OS: "What is the difference between a process and a thread?",
+//   CN: "What is the difference between TCP and UDP?",
+//   OOP: "What are the four main principles of object-oriented programming?",
+// };
 
 //AI question generation using GEMINI API
 async function generateInterviewQuestion() {
@@ -84,8 +91,8 @@ Do not add explanations.
 }
 
 //Evaluation of answer
-async function evaluateAnswer(userAnswer) {
-  const prompt = `You are a technical interviewer.
+async function evaluateAnswer(userAnswer, retryCount = 0) {
+const prompt = `You are a technical interviewer.
 Topic: ${selectedTopic}
 Difficulty: ${selectedDifficulty}
 Interview Mode: ${selectedMode}
@@ -174,15 +181,30 @@ Be fair and evaluate based on technical correctness, completeness, and clarity.`
     },
   );
 
-  if (!response.ok) {
-    throw new Error("Gemini evaluation request failed.");
+  // RETRY IF GEMINI IS TEMPORARILY UNAVAILABLE
+  if (response.status === 503 && retryCount < 3) {
+    console.log(`Gemini is busy. Retrying... Attempt ${retryCount + 1}`);
+    const delay = (retryCount + 1) * 2000;
+    await new Promise(function (resolve) {
+      setTimeout(resolve, delay);
+    });
+
+    return evaluateAnswer(userAnswer, retryCount + 1);
   }
 
-const data = await response.json();
-const evaluationText = data.candidates[0].content.parts[0].text;
-const evaluation = JSON.parse(evaluationText);
+  // HANDLE OTHER API ERRORS
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Gemini API Error:", errorText);
+    throw new Error(`Gemini API request failed: ${response.status}`);
+  }
 
-return evaluation;
+  const data = await response.json();
+  console.log("Gemini Evaluation Response:", data);
+  const evaluationText = data.candidates[0].content.parts[0].text;
+  console.log("Evaluation JSON:", evaluationText);
+  const evaluation = JSON.parse(evaluationText);
+  return evaluation;
 }
 
 // SIDEBAR NAVIGATION
@@ -190,8 +212,17 @@ navItems.forEach(function (item) {
   item.addEventListener("click", function () {
     const sectionName = item.dataset.section;
     showSection(sectionName);
-  });
+
+     if (sectionName === "history") {
+      displayInterviewHistory();
+    
+    if (sectionName === "dashboard") {
+      displayDashboardStats();
+      displayTopicPerformance();
+    }
+  }});
 });
+
 
 // SHOW SECTION
 function showSection(sectionName) {
@@ -213,6 +244,148 @@ function showSection(sectionName) {
     selectedNavItem.classList.add("active");
   }
 }
+
+// DISPLAY INTERVIEW HISTORY
+function displayInterviewHistory() {
+  const historyTableBody = document.getElementById("history-table-body");
+
+  if (interviewHistory.length === 0) {
+    historyTableBody.innerHTML = `
+      <tr>
+        <td colspan="4">No interviews completed yet.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  historyTableBody.innerHTML = "";
+  interviewHistory.forEach(function (interview) {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${interview.topic}</td>
+      <td>${interview.difficulty}</td>
+      <td>${interview.score}/10</td>
+      <td>${interview.date}</td>
+    `;
+
+    historyTableBody.appendChild(row);
+  });
+}
+
+// DISPLAY DASHBOARD STATISTICS
+function displayDashboardStats() {
+  const totalInterviews = interviewHistory.length;
+  const dashboardInterviews = document.getElementById("dashboard-interviews");
+  const dashboardAverage = document.getElementById("dashboard-average");
+  const dashboardBestTopic = document.getElementById("dashboard-best-topic");
+  const dashboardWeakTopic = document.getElementById("dashboard-weak-topic");
+
+  // No interviews yet
+  if (totalInterviews === 0) {
+    dashboardInterviews.textContent = "0";
+    dashboardAverage.textContent = "0/10";
+    dashboardBestTopic.textContent = "-";
+    dashboardWeakTopic.textContent = "-";
+    return;
+  }
+
+  // Total interviews
+  dashboardInterviews.textContent = totalInterviews;
+  // Calculate average score
+  let totalScore = 0;
+  interviewHistory.forEach(function (interview) {
+    totalScore += Number(interview.score);
+  });
+
+  const averageScore = totalScore / totalInterviews;
+  dashboardAverage.textContent =
+    averageScore.toFixed(1) + "/10";
+
+  // Calculate topic performance
+  const topicScores = {};
+  interviewHistory.forEach(function (interview) {
+    if (!topicScores[interview.topic]) {
+      topicScores[interview.topic] = [];
+    }
+
+    topicScores[interview.topic].push(
+      Number(interview.score)
+    );
+  });
+
+  let bestTopic = "";
+  let weakTopic = "";
+  let bestAverage = -1;
+  let weakAverage = 11;
+
+  for (const topic in topicScores) {
+    const scores = topicScores[topic];
+    const topicTotal = scores.reduce(function (sum, score) {
+      return sum + score;
+    }, 0);
+
+    const topicAverage = topicTotal / scores.length;
+    if (topicAverage > bestAverage) {
+      bestAverage = topicAverage;
+      bestTopic = topic;
+    }
+    if (topicAverage < weakAverage) {
+      weakAverage = topicAverage;
+      weakTopic = topic;
+    }
+  }
+
+  dashboardBestTopic.textContent = bestTopic;
+  dashboardWeakTopic.textContent = weakTopic;
+}
+
+// DISPLAY TOPIC PERFORMANCE
+function displayTopicPerformance() {
+  const topicPerformanceList = document.getElementById("topic-performance-list");
+
+  if (interviewHistory.length === 0) {
+    topicPerformanceList.innerHTML = "<p>Complete interviews to see your topic performance.</p>";
+    return;
+  }
+  const topicScores = {};
+  // Group scores by topic
+  interviewHistory.forEach(function (interview) {
+    if (!topicScores[interview.topic]) {
+      topicScores[interview.topic] = [];
+    }
+    topicScores[interview.topic].push(Number(interview.score));
+  });
+
+  topicPerformanceList.innerHTML = "";
+  // Create performance for each topic
+  for (const topic in topicScores) {
+    const scores = topicScores[topic];
+    const totalScore = scores.reduce(function (sum, score) {
+      return sum + score;
+    }, 0);
+
+    const averageScore = totalScore / scores.length;
+    const topicItem = document.createElement("div");
+    topicItem.className = "topic-performance-item";
+    topicItem.innerHTML = `
+      <div class="topic-performance-header">
+        <strong>${topic}</strong>
+        <span>${averageScore.toFixed(1)}/10</span>
+      </div>
+      <div class="topic-progress-bar">
+        <div
+          class="topic-progress-fill"
+          style="width: ${averageScore * 10}%"
+        ></div>
+      </div>
+      <small>${scores.length} interview${scores.length > 1 ? "s" : ""}</small>
+    `;
+
+    topicPerformanceList.appendChild(topicItem);
+  }
+}
+
+
 // START INTERVIEW
 startInterviewButton.addEventListener("click", async function () {
   selectedTopic = topicSelect.value;
@@ -257,7 +430,7 @@ answerInput.addEventListener("input", function () {
 });
 
 //Submit answer
-submitAnswerButton.addEventListener("click",async function () {
+submitAnswerButton.addEventListener("click", async function () {
   const userAnswer = answerInput.value;
   if (userAnswer.trim() === "") {
     alert("Please enter your answer before submitting.");
@@ -269,22 +442,33 @@ submitAnswerButton.addEventListener("click",async function () {
   scoreMessage.textContent = "AI is evaluating your answer...";
 
   try {
-  const evaluation = await evaluateAnswer(userAnswer);
-  if (isFollowUpQuestion) {
-  console.log("This was a follow-up answer.");
-}
-  console.log("AI Evaluation:", evaluation);
-  scoreValue.textContent = evaluation.score;
-  positiveFeedback.textContent = evaluation.strengths;
-  missingFeedback.textContent = evaluation.missing;
-  improvementFeedback.textContent = evaluation.improvement;
-  followUpQuestion.textContent = evaluation.followUp;
+    const evaluation = await evaluateAnswer(userAnswer);
+    if (isFollowUpQuestion) {
+      console.log("This was a follow-up answer.");
+    }
+    console.log("AI Evaluation:", evaluation);
+    scoreValue.textContent = evaluation.score;
+    positiveFeedback.textContent = evaluation.strengths;
+    missingFeedback.textContent = evaluation.missing;
+    improvementFeedback.textContent = evaluation.improvement;
+    followUpQuestion.textContent = evaluation.followUp;
 
-scoreMessage.textContent = "Your answer has been evaluated.";
-  }
-  catch (error) {
+    const interviewResult = {
+      topic: selectedTopic,
+      difficulty: selectedDifficulty,
+      mode: selectedMode,
+      score: evaluation.score,
+      date: new Date().toLocaleDateString(),
+    };
+    interviewHistory.push(interviewResult);
+
+    localStorage.setItem("interviewHistory", JSON.stringify(interviewHistory));
+
+    scoreMessage.textContent = "Your answer has been evaluated.";
+  } catch (error) {
     console.error(error);
-    scoreMessage.textContent = "Unable to evaluate your answer. Please try again.";
+    scoreMessage.textContent =
+      "Unable to evaluate your answer. Please try again.";
   }
 });
 
